@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="id" class="h-full">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Outfit', sans-serif;
+        }
+        
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(24px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        @keyframes pop {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            60% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes confetti {
+            0% {
+                transform: translateY(0) rotate(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-120px) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        .anim-fade {
+            animation: fadeUp 0.5s ease both;
+        }
+        
+        .anim-pop {
+            animation: pop 0.4s ease both;
+        }
+        
+        .opt-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .opt-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .confetti-piece {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+            animation: confetti 1.2s ease both;
+        }
+    </style>
+</head>
+
+<body class="h-full">
+    <div id="app" class="h-full w-full overflow-auto" style="background:#0f0f1a;">
+        <div id="screen-start" class="h-full flex items-center justify-center p-6">
+            <div class="text-center max-w-md w-full anim-fade">
+                <div class="w-24 h-24 rounded-full mx-auto mb-6 flex items-center justify-center text-5xl" style="background:linear-gradient(135deg,#ff6b6b,#ffa36b);">🤔</div>
+                <h1 id="title-text" class="text-3xl font-800 mb-2" style="color:#fff;">Seberapa Kenal Kamu Sama Aku?</h1>
+                <p id="subtitle-text" class="text-lg mb-8 font-300" style="color:#8b8ba3;">Jawab 10 pertanyaan dan lihat seberapa dekat kamu mengenalku!</p>
+                <input id="player-name" type="text" placeholder="Ketik namamu dulu..." class="w-full px-5 py-3 rounded-2xl text-center text-lg font-500 outline-none mb-4" style="background:#1a1a2e; color:#fff; border:2px solid #2a2a4a;">
+                <button id="btn-start" class="w-full py-3.5 rounded-2xl text-lg font-600 opt-btn" style="background:linear-gradient(135deg,#ff6b6b,#ffa36b); color:#fff;" onclick="startQuiz()">Mulai Kuis →</button>
+                <p id="name-error" class="mt-3 text-sm font-400 hidden" style="color:#ff6b6b;">Tulis namamu dulu ya! 😊</p>
+            </div>
+        </div>
+
+        <div id="screen-quiz" class="h-full flex items-center justify-center p-6 hidden">
+            <div class="max-w-lg w-full">
+                <div class="flex items-center justify-between mb-6">
+                    <span id="q-counter" class="text-sm font-500" style="color:#8b8ba3;">1 / 10</span>
+                    <span id="q-score" class="text-sm font-500" style="color:#ffa36b;">Skor: 0</span>
+                </div>
+                <div class="w-full h-1.5 rounded-full mb-8" style="background:#1a1a2e;">
+                    <div id="progress-bar" class="h-full rounded-full transition-all duration-500" style="background:linear-gradient(90deg,#ff6b6b,#ffa36b); width:10%;"></div>
+                </div>
+                <h2 id="q-text" class="text-xl font-700 mb-6 anim-fade" style="color:#fff;"></h2>
+                <div id="q-options" class="space-y-3"></div>
+                <div id="q-feedback" class="mt-5 p-4 rounded-2xl hidden anim-pop" style="background:#1a1a2e;">
+                    <p id="feedback-text" class="font-500" style="color:#fff;"></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-result" class="h-full flex items-center justify-center p-6 hidden">
+            <div id="result-card" class="text-center max-w-md w-full anim-pop relative overflow-hidden p-8 rounded-3xl" style="background:#1a1a2e;">
+                <div id="confetti-container" class="absolute inset-0 pointer-events-none"></div>
+                <div id="result-emoji" class="text-6xl mb-4"></div>
+                <h2 id="result-title" class="text-2xl font-800 mb-2" style="color:#fff;"></h2>
+                <p id="result-desc" class="font-300 mb-6" style="color:#8b8ba3;"></p>
+                <div class="inline-flex items-center gap-2 px-6 py-3 rounded-2xl mb-6" style="background:#0f0f1a;">
+                    <span class="text-3xl font-800" style="color:#ffa36b;" id="result-score"></span>
+                    <span class="font-400" style="color:#8b8ba3;">/ 100</span>
+                </div><br>
+                <button class="mt-4 px-8 py-3 rounded-2xl font-600 opt-btn" style="background:linear-gradient(135deg,#ff6b6b,#ffa36b); color:#fff;" onclick="resetQuiz()">Coba Lagi 🔄</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const questions = [{
+            q: "Makanan favorit aku apa?",
+            options: ["Nasi Goreng", "Mie Ayam", "Sate", "Bakso"],
+            answer: 0
+        }, {
+            q: "Warna kesukaan aku?",
+            options: ["Biru", "Hitam", "Merah", "Hijau"],
+            answer: 1
+        }, {
+            q: "Aku orangnya gimana kalau lagi kesel?",
+            options: ["Diem aja", "Curhat ke orang", "Marah-marah", "Tidur"],
+            answer: 0
+        }, {
+            q: "Aku paling takut sama apa?",
+            options: ["Kecoa", "Gelap", "Ketinggian", "Ular"],
+            answer: 0
+        }, {
+            q: "Weekend biasanya aku ngapain?",
+            options: ["Rebahan", "Jalan-jalan", "Tidur", "Nongkrong"],
+            answer: 2
+        }, {
+            q: "Genre musik favorit aku?",
+            options: ["Pop", "Jazz", "Dj", "Galau"],
+            answer: 2
+        }, {
+            q: "Aku kalau tidur biasanya jam berapa?",
+            options: ["Jam 9 malam", "Jam 11 malam", "Jam 1 pagi", "Gak tentu"],
+            answer: 0
+        }, {
+            q: "Minuman favorit aku?",
+            options: ["Kopi", "Es Teh", "Boba", "Air putih"],
+            answer: 0
+        }, {
+            q: "Apa cita-cita aku?",
+            options: ["Dokter", "Web Develover", "Programmer", "Guru"],
+            answer: 1
+        }, {
+            q: "Sifat aku yang paling dominan?",
+            options: ["Pendiam", "Humoris", "Serius", "Cuek"],
+            answer: 3
+        }];
+
+        // VARIABEL GLOBAL (Diletakkan di atas agar tidak error)
+        let currentQ = 0;
+        let score = 0;
+        let playerName = "";
+        let answered = false;
+        let wrongAnswers = [];
+
+        function startQuiz() {
+            playerName = document.getElementById('player-name').value.trim();
+            if (!playerName) {
+                document.getElementById('name-error').classList.remove('hidden');
+                return;
+            }
+            document.getElementById('screen-start').classList.add('hidden');
+            document.getElementById('screen-quiz').classList.remove('hidden');
+            currentQ = 0;
+            score = 0;
+            wrongAnswers = []; // Reset daftar salah
+            showQuestion();
+        }
+
+        function showQuestion() {
+            answered = false;
+            const q = questions[currentQ];
+            document.getElementById('q-counter').textContent = `${currentQ + 1} / ${questions.length}`;
+            document.getElementById('q-score').textContent = `Skor: ${score * 10}`;
+            document.getElementById('progress-bar').style.width = `${((currentQ + 1) / questions.length) * 100}%`;
+            document.getElementById('q-feedback').classList.add('hidden');
+
+            const qText = document.getElementById('q-text');
+            qText.textContent = q.q;
+
+            const container = document.getElementById('q-options');
+            container.innerHTML = '';
+            q.options.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = 'w-full text-left px-5 py-3.5 rounded-2xl font-500 opt-btn';
+                btn.style.cssText = 'background:#1a1a2e; color:#fff; border:2px solid #2a2a4a;';
+                btn.textContent = opt;
+                btn.onclick = () => selectAnswer(i, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function selectAnswer(idx, btn) {
+            if (answered) return;
+            answered = true;
+            const correct = questions[currentQ].answer === idx;
+
+            if (correct) {
+                score++;
+            } else {
+                wrongAnswers.push(currentQ + 1); // Catat nomor salah
+            }
+
+            const allBtns = document.getElementById('q-options').children;
+            for (let b of allBtns) {
+                b.style.opacity = '0.5';
+                b.style.pointerEvents = 'none';
+            }
+
+            if (correct) {
+                btn.style.background = 'linear-gradient(135deg,#22c55e,#16a34a)';
+                btn.style.borderColor = '#22c55e';
+            } else {
+                btn.style.background = 'linear-gradient(135deg,#ef4444,#dc2626)';
+                btn.style.borderColor = '#ef4444';
+                allBtns[questions[currentQ].answer].style.background = 'linear-gradient(135deg,#22c55e,#16a34a)';
+                allBtns[questions[currentQ].answer].style.borderColor = '#22c55e';
+                allBtns[questions[currentQ].answer].style.opacity = '1';
+            }
+            btn.style.opacity = '1';
+
+            const fb = document.getElementById('q-feedback');
+            const fbText = document.getElementById('feedback-text');
+            fb.classList.remove('hidden');
+            fbText.textContent = correct ? "Betul! Kamu emang kenal aku ya 😄" : `Salah! Jawabannya: ${questions[currentQ].options[questions[currentQ].answer]}`;
+
+            setTimeout(() => {
+                currentQ++;
+                if (currentQ < questions.length) showQuestion();
+                else showResult();
+            }, 1800);
+        }
+
+        function showResult() {
+            document.getElementById('screen-quiz').classList.add('hidden');
+            document.getElementById('screen-result').classList.remove('hidden');
+
+            const total = score * 10;
+            document.getElementById('result-score').textContent = total;
+
+            // KIRIM DATA KE GOOGLE SHEETS
+            sendDataToSheet(playerName, total, wrongAnswers);
+
+            let emoji, title, desc;
+            if (total >= 80) {
+                emoji = '🎉';
+                title = `${playerName}, kamu emang sahabat sejati!`;
+                desc = 'Luar biasa! Kamu beneran kenal aku banget!';
+            } else if (total >= 50) {
+                emoji = '😊';
+                title = `Lumayan juga, ${playerName}!`;
+                desc = 'Kamu cukup kenal aku, tapi masih bisa lebih dekat lagi~';
+            } else {
+                emoji = '😅';
+                title = `Hmm ${playerName}, yakin kenal aku?`;
+                desc = 'Kayaknya kita perlu lebih sering ngobrol deh hehe';
+            }
+
+            document.getElementById('result-emoji').textContent = emoji;
+            document.getElementById('result-title').textContent = title;
+            document.getElementById('result-desc').textContent = desc;
+            if (total >= 80) spawnConfetti();
+        }
+
+        function sendDataToSheet(name, score, wrongList) {
+            const scriptURL = 'https://script.google.com/macros/s/AKfycbx5UyomD4F3VBt_VFdRqkYr9PdYfLpUWatkRlI6-pAI00O1H0XQpYEAzMut4IhAWdBo/exec';
+            const payload = {
+                name: name,
+                score: score,
+                wrongQuestions: wrongList.length > 0 ? wrongList.join(", ") : "Benar Semua"
+            };
+
+            fetch(scriptURL, {
+                method: 'POST',
+                mode: 'no-cors',
+                body: JSON.stringify(payload)
+            }).catch(e => console.log(e));
+        }
+
+        function spawnConfetti() {
+            const container = document.getElementById('confetti-container');
+            const colors = ['#ff6b6b', '#ffa36b', '#22c55e', '#3b82f6'];
+            for (let i = 0; i < 30; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'confetti-piece';
+                piece.style.left = Math.random() * 100 + '%';
+                piece.style.bottom = '0';
+                piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+                piece.style.animationDuration = (0.8 + Math.random() * 0.6) + 's';
+                container.appendChild(piece);
+            }
+        }
+
+        function resetQuiz() {
+            document.getElementById('screen-result').classList.add('hidden');
+            document.getElementById('screen-start').classList.remove('hidden');
+            document.getElementById('player-name').value = '';
+            wrongAnswers = [];
+        }
+    </script>
+</body>
+
+</html>
